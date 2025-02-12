@@ -1,81 +1,73 @@
-import React, { useState, useEffect, useMemo } from "react";
-import "./Country.css";
+import { useEffect, useState } from "react";
+import "./Country.css"; // Ensure the correct path to CSS file exists
 
-const Card = ({ image, title }) => {
-  return (
-    <div className="countryCard" data-testid="country-card">
-      {image && <img src={image} alt={title} />}
-      <p>{title}</p>
-    </div>
-  );
-};
-
-const Country = () => {
-  const [searchData, setSearchData] = useState("");
-  const [countryList, setCountryList] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function CountrySearch() {
+  const [countries, setCountries] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredCountries, setFilteredCountries] = useState([]);
 
   useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        const response = await fetch("https://restcountries.com/v3.1/all");
+    fetch("https://countries-search-data-prod-812920491762.asia-south1.run.app/countries")
+      .then((response) => {
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error("Network response was not ok");
         }
-        const data = await response.json();
-        setCountryList(data);
-      } catch (error) {
-        console.error("API Fetch Error:", error);
-        setError("Failed to load countries. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCountries();
+        return response.json();
+      })
+      .then((data) => {
+        console.log("API Response:", data); 
+        if (Array.isArray(data)) {
+          const newData = data.map((country) => ({
+            common: country.common, 
+            png: country.png, 
+            code: country.common, 
+          }));
+          setCountries(newData);
+          setFilteredCountries(newData);
+        } else {
+          console.error("Invalid data format received:", data);
+        }
+      })
+      .catch((error) => console.error("Error fetching countries:", error));
   }, []);
 
-  const currentCountryList = useMemo(() => {
-    const searchStr = searchData.toLowerCase();
-    return countryList.filter((country) =>
-      country.name?.common?.toLowerCase().includes(searchStr)
-    );
-  }, [searchData, countryList]);
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredCountries(countries);
+    } else {
+      setFilteredCountries(
+        countries.filter(
+          (country) => country.common && country.common.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+  }, [searchTerm, countries]);
 
   return (
-    <div>
-      <div className="inputDiv">
-        <input
-          type="text"
-          value={searchData}
-          placeholder="Search for countries"
-          onChange={(e) => setSearchData(e.target.value)}
-          data-testid="search-input"
-        />
-      </div>
-      <hr />
-      {loading ? (
-        <p className="loading">Loading countries...</p>
-      ) : error ? (
-        <p className="error">{error}</p>
-      ) : (
-        <div className="cardContainer">
-          {currentCountryList.length > 0 ? (
-            currentCountryList.map((country) => (
-              <Card
-                key={country.cca3}
-                title={country.name.common}
-                image={country.flags?.png}
+    <div className="container">
+      <input
+        type="text"
+        placeholder="Search for a country..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="search-bar"
+      />
+      <div className="countries-grid">
+        {filteredCountries.length > 0 ? (
+          filteredCountries.map((country) => (
+            <div key={country.common} className="countryCard">
+              <img
+                src={country.png}
+                alt={`Flag of ${country.common}`}
+                className="flag"
               />
-            ))
-          ) : (
-            <p>No results found.</p>
-          )}
-        </div>
-      )}
+              <p className="country-name">{country.common}</p>
+            </div>
+          ))
+        ) : (
+          <p className="no-results">No countries found</p>
+        )}
+      </div>
     </div>
   );
-};
-
-export default Country;
+}
