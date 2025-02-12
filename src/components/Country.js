@@ -14,6 +14,7 @@ const Country = () => {
   const [searchData, setSearchData] = useState("");
   const [countryList, setCountryList] = useState([]);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -27,6 +28,8 @@ const Country = () => {
       } catch (error) {
         console.error("API Fetch Error:", error);
         setError("Failed to load countries. Please try again.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -35,7 +38,7 @@ const Country = () => {
 
   const currentCountryList = useMemo(() => {
     const searchStr = searchData.toLowerCase();
-    return countryList.filter((country) => 
+    return countryList.filter((country) =>
       country.name?.common?.toLowerCase().includes(searchStr)
     );
   }, [searchData, countryList]);
@@ -52,20 +55,25 @@ const Country = () => {
         />
       </div>
       <hr />
-      {error && <p className="error-message">{error}</p>}
-      <div className="cardContainer">
-        {currentCountryList.length > 0 ? (
-          currentCountryList.map((country) => (
-            <Card
-              key={country.cca3} 
-              title={country.name.common}
-              image={country.flags?.png}
-            />
-          ))
-        ) : (
-          <p>No results found.</p>
-        )}
-      </div>
+      {loading ? (
+        <p className="loading">Loading countries...</p>
+      ) : error ? (
+        <p className="error">{error}</p>
+      ) : (
+        <div className="cardContainer">
+          {currentCountryList.length > 0 ? (
+            currentCountryList.map((country) => (
+              <Card
+                key={country.cca3}
+                title={country.name.common}
+                image={country.flags?.png}
+              />
+            ))
+          ) : (
+            <p>No results found.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
